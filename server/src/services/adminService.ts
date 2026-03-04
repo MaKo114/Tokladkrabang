@@ -100,41 +100,26 @@ export class AdminService {
   }
 
   async resolveReport(report_id: number) {
-    // 1. หา post_id จาก report_id ตัวที่ถูกกดเข้ามาก่อน
-    // ใช้ชื่อ column ให้เป๊ะตาม table (เช็คว่าใน Neon ชื่อ post_id หรือ id)
-    const reportData = await sql`
-    SELECT post_id FROM "report" WHERE report_id = ${report_id}
-  `;
+  return await sql.begin(async (tx: any) => {
+    const rep = await tx`
+      SELECT report_id, post_id
+      FROM "report"
+      WHERE report_id = ${report_id}
+      LIMIT 1
+    `;
+    if (rep.length === 0) return null;
 
-    if (!reportData || reportData.length === 0) return null;
-    const targetPostId = reportData[0].post_id;
+    const post_id = rep[0].post_id;
 
-    try {
-      // 2. ใช้ Transaction (sql.begin)
-      return await sql.begin(async (sql) => {
-        // Step A: ลบรายงาน "ทุกตัว" ที่แจ้งโพสต์นี้
-        // เพื่อป้องกัน Foreign Key Error จากรายงานคนอื่นที่แจ้งโพสต์เดียวกัน
-        await sql`
-        DELETE FROM "report"
-        WHERE post_id = ${targetPostId}
-      `;
+    const deleted = await tx`
+      DELETE FROM "Post"
+      WHERE post_id = ${post_id}
+      RETURNING post_id, title
+    `;
 
-        // Step B: ลบโพสต์ต้นทาง
-        // *** เช็คใน Neon ของคุณว่าตาราง post ใช้ชื่อ column ว่า "id" หรือ "post_id" ***
-        const deletedPost = await sql`
-        DELETE FROM "post"
-        WHERE id = ${targetPostId} 
-        RETURNING id
-      `;
-
-        return { success: true, post_id: targetPostId };
-      });
-    } catch (err: any) {
-      // พ่น error ออกมาที่ Terminal ของ Backend เพื่อดูสาเหตุที่แท้จริง
-      console.error("Neon DB Error:", err.message);
-      throw new Error(err.message);
-    }
-  }
+    return deleted[0] || null;
+  });
+}
 }
 
 export const adminService = new AdminService();
