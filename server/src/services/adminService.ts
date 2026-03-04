@@ -1,4 +1,5 @@
 import sql from "../../db";
+import { deletePost } from "../controllers/PostController";
 
 export class AdminService {
   // --- User Management ---
@@ -17,7 +18,7 @@ export class AdminService {
       WHERE student_id = ${student_id}
       LIMIT 1
     `;
-    
+
     if (user.length === 0) return null;
 
     const posts = await sql`
@@ -30,7 +31,10 @@ export class AdminService {
     return { ...user[0], posts };
   }
 
-  async updateUserStatus(student_id: number, status: 'ACTIVE' | 'BANNED' | 'INACTIVE') {
+  async updateUserStatus(
+    student_id: number,
+    status: "ACTIVE" | "BANNED" | "INACTIVE",
+  ) {
     const updated = await sql`
       UPDATE "User"
       SET status = ${status}::"UserStatus", updated_at = NOW()
@@ -58,7 +62,7 @@ export class AdminService {
       await tx`DELETE FROM "post_category" WHERE post_id = ${post_id}`;
       await tx`DELETE FROM "favorite" WHERE post_id = ${post_id}`;
       await tx`DELETE FROM "report" WHERE post_id = ${post_id}`;
-      
+
       const deleted = await tx`
         DELETE FROM "Post"
         WHERE post_id = ${post_id}
@@ -71,7 +75,7 @@ export class AdminService {
   // --- Report Management ---
   async getAllReports() {
     return await sql`
-      SELECT r.report_id, r.text, r.created_at, 
+      SELECT r.report_id, r.reason, r.description, r.status, r.created_at,
              p.post_id, p.title as post_title,
              u.first_name as reporter_name, u.last_name as reporter_surname
       FROM "report" r
@@ -96,15 +100,40 @@ export class AdminService {
   }
 
   async resolveReport(report_id: number) {
-    // In this schema, we don't have a 'resolved' status in the report table, 
-    // so we'll just delete the report to mark it as handled.
-    // Alternatively, we could add a column to the schema, but we'll stick to deletion for now.
-    const deleted = await sql`
-      DELETE FROM "report"
-      WHERE report_id = ${report_id}
-      RETURNING report_id
-    `;
-    return deleted[0] || null;
+    // 1. หา post_id จาก report_id ตัวที่ถูกกดเข้ามาก่อน
+    // ใช้ชื่อ column ให้เป๊ะตาม table (เช็คว่าใน Neon ชื่อ post_id หรือ id)
+    const reportData = await sql`
+    SELECT post_id FROM "report" WHERE report_id = ${report_id}
+  `;
+
+    if (!reportData || reportData.length === 0) return null;
+    const targetPostId = reportData[0].post_id;
+
+    try {
+      // 2. ใช้ Transaction (sql.begin)
+      return await sql.begin(async (sql) => {
+        // Step A: ลบรายงาน "ทุกตัว" ที่แจ้งโพสต์นี้
+        // เพื่อป้องกัน Foreign Key Error จากรายงานคนอื่นที่แจ้งโพสต์เดียวกัน
+        await sql`
+        DELETE FROM "report"
+        WHERE post_id = ${targetPostId}
+      `;
+
+        // Step B: ลบโพสต์ต้นทาง
+        // *** เช็คใน Neon ของคุณว่าตาราง post ใช้ชื่อ column ว่า "id" หรือ "post_id" ***
+        const deletedPost = await sql`
+        DELETE FROM "post"
+        WHERE id = ${targetPostId} 
+        RETURNING id
+      `;
+
+        return { success: true, post_id: targetPostId };
+      });
+    } catch (err: any) {
+      // พ่น error ออกมาที่ Terminal ของ Backend เพื่อดูสาเหตุที่แท้จริง
+      console.error("Neon DB Error:", err.message);
+      throw new Error(err.message);
+    }
   }
 }
 

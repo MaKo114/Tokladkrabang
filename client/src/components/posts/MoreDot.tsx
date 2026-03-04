@@ -9,9 +9,6 @@ import { MoreHorizontal, Flag } from "lucide-react";
 
 const MoreDot = () => {
 
-  const handle = () => {
-
-  }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

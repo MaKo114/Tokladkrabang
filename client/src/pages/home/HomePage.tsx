@@ -1,134 +1,80 @@
 import { useEffect, useState } from "react";
-import { User, Search, Heart, Pencil, Grid2x2 } from "lucide-react";
-import { Avatar, AvatarFallback } from "../../components/ui/avatar";
+import { Search, Pencil } from "lucide-react";
 import Title from "../../titles/Title";
 import PostDialog from "@/components/posts/PostDialog";
-import MoreDot from "@/components/posts/MoreDot";
-import { useNavigate } from "react-router-dom";
 import useTestStore from "@/store/tokStore";
-import CategoriesMenu from "@/components/categories/CategoriesMenu";
 import usePostStore from "@/store/postStore";
-import ImageCard from "@/components/posts/ImageCard";
+import PostCard from "@/components/posts/PostCard";
+import SideBar from "@/layouts/SideBar";
+
 
 const HomePage = () => {
   const fetchPosts = usePostStore((state) => state.fetchPosts);
   const posts = usePostStore((state) => state.posts);
   const [searchQuery, setSearchQuery] = useState("");
   const [isPostDialogOpen, setIsPostDialogOpen] = useState(false);
-  const navigate = useNavigate();
   const token: any = useTestStore((s) => s.token);
 
   useEffect(() => {
-    if (token) {
-      fetchPosts(token);
-    }
+    if (token) fetchPosts(token);
   }, [token]);
 
+  const filteredPosts = posts.filter(
+    (post: any) =>
+      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#F8F9FA] font-['Inter',_sans-serif]">
       <Title />
-      <div className="mx-auto flex max-w-6xl gap-6 px-6 py-6">
-        {/* Sidebar */}
-        <aside className="w-64 shrink-0">
-          <div className="sticky top-6 rounded-xl border border-input bg-card p-4 shadow-sm">
-            <div className="flex gap-2 items-center mb-3">
-              <Grid2x2 />
-              <p className="text-sm font-semibold text-foreground">หมวดหมู่</p>
-            </div>
 
-            {/* Categories Menu */}
-            <CategoriesMenu />
-          </div>
-        </aside>
+      <div className="mx-auto flex max-w-6xl gap-8 px-4 py-8">
+        <SideBar />
 
-        {/* Main Content */}
-        <main className="flex-1">
+        <main className="flex-1 max-w-2xl mx-auto lg:mx-0">
           {/* Search bar */}
-          <div className="relative mb-6">
+          <div className="relative mb-8 group">
             <input
               type="text"
-              placeholder="ค้นหา"
+              placeholder="ค้นหาสิ่งที่น่าสนใจ..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background py-2 pl-4 pr-10 text-sm outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-full rounded-[20px] border-none bg-white py-4 pl-12 pr-6 text-sm shadow-sm outline-none ring-1 ring-gray-100 focus:ring-2 focus:ring-[#FF5800]/50 transition-all"
             />
-            <Search
-              size={18}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
+            <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#FF5800] transition-colors" />
           </div>
 
+          {/* Posts List */}
           <div className="space-y-6">
-            {posts.map((post: any) => (
-              <div
-                key={post.post_id}
-                className="rounded-xl border border-input bg-card p-4 shadow-sm"
-              >
-                {/* Post header */}
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border-2 border-muted">
-                      <AvatarFallback className="bg-muted text-muted-foreground">
-                        <User size={20} />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        {`${post.first_name} ${post.last_name}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {post.created_at_th}
-                      </p>
-                    </div>
-                  </div>
-
-                  <MoreDot />
-                </div>
-
-                {/* Content */}
-                <p className="mb-3 text-sm text-foreground leading-relaxed">
-                  {post.title}
-                  {post.description}
-                </p>
-
-                {/* Images */}
-                {/* Images */}
-                {post.images?.length > 0 && (
-                  <div className="mb-3">
-                    <ImageCard images={post.images} />
-                  </div>
-                )}
-
-                {/* Footer */}
-                <div className="flex items-center gap-3">
-                  <button className="transition hover:scale-110">
-                    <Heart size={22} className="text-muted-foreground" />
-                  </button>
-
-                  <button
-                    className="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-amber-500 transition"
-                    onClick={() => navigate("chat")}
-                  >
-                    แชท
-                  </button>
-                </div>
+            {filteredPosts.length > 0 ? (
+              filteredPosts.map((post: any) => (
+                <PostCard key={post.post_id} post={post} />
+              ))
+            ) : (
+              <div className="text-center py-20 bg-white rounded-[24px] border border-dashed border-gray-200">
+                <Search size={30} className="mx-auto mb-4 text-gray-300" />
+                <p className="text-gray-500 font-bold">ไม่พบโพสต์ที่คุณกำลังมองหา</p>
               </div>
-            ))}
+            )}
           </div>
         </main>
       </div>
 
-      {/* Floating Button */}
+      {/* Floating Action Button */}
       <button
         onClick={() => setIsPostDialogOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 font-semibold text-white shadow-lg hover:bg-amber-500 transition"
+        className="fixed bottom-8 right-8 z-50 flex items-center gap-3 rounded-full bg-gradient-to-r from-[#FFB800] to-[#FF5800] px-6 py-4 font-black text-white shadow-lg hover:scale-105 active:scale-95 transition-all group"
       >
-        <Pencil size={18} />
-        เขียนโพสต์
+        <div className="bg-white/20 p-1.5 rounded-lg group-hover:rotate-12 transition-transform">
+          <Pencil size={18} />
+        </div>
+        <span className="tracking-tight">เขียนโพสต์ใหม่</span>
       </button>
 
       <PostDialog open={isPostDialogOpen} onOpenChange={setIsPostDialogOpen} />
     </div>
   );
 };
+
 export default HomePage;

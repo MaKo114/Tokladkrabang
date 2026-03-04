@@ -7,11 +7,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, X, Loader2, Tag, ShoppingBag, Pencil } from "lucide-react";
 import { useState } from "react";
 import { createPost } from "@/api/post";
 import useTestStore from "@/store/tokStore";
 import { uploadFile } from "@/api/post";
+import Swal from "sweetalert2";
 
 interface PostDialogProps {
   open: boolean;
@@ -27,20 +28,16 @@ const PostDialog = ({ open, onOpenChange }: PostDialogProps) => {
   });
 
   const [loading, setLoading] = useState(false);
-
   const categories = useTestStore((state) => state.categories);
   const token = useTestStore((state) => state.token);
-
-  /* ================= Upload Image ================= */
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !token) return;
 
     const files = Array.from(e.target.files);
-
-    // ✅ 1. preview ทันที
     const previewUrls = files.map((file) => URL.createObjectURL(file));
 
+    // Preview ทันที
     setPostForm((prev) => ({
       ...prev,
       image_urls: [...prev.image_urls, ...previewUrls],
@@ -48,15 +45,11 @@ const PostDialog = ({ open, onOpenChange }: PostDialogProps) => {
 
     try {
       setLoading(true);
-
-      // ✅ 2. upload จริงไป backend
       const uploadedUrls = await Promise.all(
         files.map(async (file) => {
           const reader = new FileReader();
-
           return new Promise<string>((resolve, reject) => {
             reader.readAsDataURL(file);
-
             reader.onloadend = async () => {
               try {
                 const res = await uploadFile(token, reader.result as string);
@@ -65,13 +58,12 @@ const PostDialog = ({ open, onOpenChange }: PostDialogProps) => {
                 reject(err);
               }
             };
-
             reader.onerror = reject;
           });
         }),
       );
 
-      // ✅ 3. replace preview ด้วย url จริงจาก cloudinary
+      // Replace preview ด้วย URL จริง
       setPostForm((prev) => ({
         ...prev,
         image_urls: [
@@ -83,20 +75,28 @@ const PostDialog = ({ open, onOpenChange }: PostDialogProps) => {
         ],
       }));
     } catch (err) {
-      console.error(err);
-      alert("อัปโหลดรูปไม่สำเร็จ");
+      Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถอัปโหลดรูปภาพได้", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= Submit ================= */
-
   const handleSubmit = async () => {
+    if (!postForm.title.trim() || !postForm.category_id) {
+      Swal.fire("ข้อมูลไม่ครบ", "กรุณาระบุชื่อสิ่งของและหมวดหมู่", "warning");
+      return;
+    }
+
     try {
       setLoading(true);
-
       await createPost(token, postForm);
+
+      Swal.fire({
+        icon: "success",
+        title: "โพสต์สำเร็จ!",
+        timer: 1500,
+        showConfirmButton: false,
+      });
 
       setPostForm({
         category_id: null,
@@ -104,7 +104,6 @@ const PostDialog = ({ open, onOpenChange }: PostDialogProps) => {
         description: "",
         image_urls: [],
       });
-
       onOpenChange(false);
     } catch (err) {
       console.error(err);
@@ -115,105 +114,156 @@ const PostDialog = ({ open, onOpenChange }: PostDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>เขียนโพสต์</DialogTitle>
-        </DialogHeader>
+      {/* ปรับ sm:max-w ให้กว้างขึ้นนิดหน่อย และจำกัดความสูงไม่ให้เกิน 90% ของหน้าจอ */}
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] rounded-[28px] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+        <div className="h-1.5 bg-gradient-to-r from-[#FFB800] to-[#FF5800] shrink-0" />
 
-        <div className="space-y-4">
-          {/* Title */}
-          <input
-            type="text"
-            placeholder="ชื่อสิ่งของที่ต้องการแลก"
-            name="title"
-            value={postForm.title}
-            className="w-full rounded-md border border-input px-3 py-2"
-            onChange={(e) =>
-              setPostForm({ ...postForm, title: e.target.value })
-            }
-          />
-
-          {/* Category */}
-          <select
-            value={postForm.category_id ?? ""}
-            onChange={(e) =>
-              setPostForm({
-                ...postForm,
-                category_id: Number(e.target.value),
-              })
-            }
-            className="w-full rounded-md border border-input px-3 py-2"
-          >
-            <option value="">เลือกหมวดหมู่</option>
-            {categories.map((cat: any) => (
-              <option key={cat.category_id} value={cat.category_id}>
-                {cat.category_name}
-              </option>
-            ))}
-          </select>
-
-          {/* Description */}
-          <Textarea
-            placeholder="รายละเอียด"
-            value={postForm.description}
-            onChange={(e) =>
-              setPostForm({ ...postForm, description: e.target.value })
-            }
-          />
-
-          {/* Upload Button */}
-          <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-dashed py-8">
-            <ImagePlus size={20} />
-            {loading ? "กำลังอัปโหลด..." : "เพิ่มรูปภาพ"}
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-            />
-          </label>
-
-          {/* Preview Images */}
-          {postForm.image_urls.length > 0 && (
-            <div className="flex gap-3 overflow-x-auto pb-2 scroll-smooth">
-              {postForm.image_urls.map((url, index) => (
-                <div key={index} className="relative flex-shrink-0">
-                  {/* ปุ่มลบ */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPostForm((prev) => ({
-                        ...prev,
-                        image_urls: prev.image_urls.filter(
-                          (_, i) => i !== index,
-                        ),
-                      }))
-                    }
-                    className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white text-sm hover:bg-black"
-                  >
-                    ×
-                  </button>
-
-                  <img
-                    src={url}
-                    alt=""
-                    className="h-28 w-28 rounded-xl object-cover shadow-md transition-transform duration-200 hover:scale-105"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+        {/* ส่วนหัวตรึงอยู่กับที่ */}
+        <div className="px-8 pt-8 pb-4 shrink-0">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+              <Pencil className="text-[#FF5800]" size={24} />
+              เขียนโพสต์ของคุณ
+            </DialogTitle>
+          </DialogHeader>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            ยกเลิก
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "กำลังโพสต์..." : "โพสต์"}
-          </Button>
-        </DialogFooter>
+        {/* ส่วนเนื้อหาที่เลื่อนได้ (Scrollable Area) */}
+        <div className="px-8 py-2 overflow-y-auto flex-1 custom-scrollbar">
+          <div className="space-y-5 pb-4">
+            {/* Title Input */}
+            <div className="relative group">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#FF5800] transition-colors">
+                <ShoppingBag size={18} />
+              </div>
+              <input
+                type="text"
+                placeholder="ชื่อสิ่งของที่ต้องการแลก..."
+                value={postForm.title}
+                className="w-full rounded-2xl bg-gray-50 border-none py-3.5 pl-10 pr-4 text-sm font-bold shadow-inner ring-1 ring-gray-200 outline-none focus:ring-2 focus:ring-[#FF5800]/50 transition-all"
+                onChange={(e) =>
+                  setPostForm({ ...postForm, title: e.target.value })
+                }
+              />
+            </div>
+
+            {/* Category Select */}
+            <div className="relative group">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#FF5800] transition-colors pointer-events-none">
+                <Tag size={18} />
+              </div>
+              <select
+                value={postForm.category_id ?? ""}
+                onChange={(e) =>
+                  setPostForm({
+                    ...postForm,
+                    category_id: Number(e.target.value),
+                  })
+                }
+                className="w-full rounded-2xl bg-gray-50 border-none py-3.5 pl-10 pr-10 text-sm font-bold shadow-inner ring-1 ring-gray-200 outline-none focus:ring-2 focus:ring-[#FF5800]/50 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">เลือกหมวดหมู่สิ่งของ</option>
+                {categories.map((cat: any) => (
+                  <option key={cat.category_id} value={cat.category_id}>
+                    {cat.category_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Description Textarea */}
+            <Textarea
+              placeholder="รายละเอียดสิ่งของ..."
+              value={postForm.description}
+              className="min-h-[120px] rounded-2xl bg-gray-50 border-none p-4 text-sm font-medium shadow-inner ring-1 ring-gray-200 focus-visible:ring-2 focus-visible:ring-[#FF5800]/50 transition-all resize-none"
+              onChange={(e) =>
+                setPostForm({ ...postForm, description: e.target.value })
+              }
+            />
+
+            {/* Image Upload Area */}
+            <div className="space-y-4">
+              <label className="flex w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-[24px] border-2 border-dashed border-gray-200 bg-gray-50/50 py-10 transition-all hover:border-[#FF5800] hover:bg-orange-50/30 group">
+                <div className="p-4 bg-white rounded-2xl shadow-sm text-gray-400 group-hover:text-[#FF5800] transition-colors">
+                  {loading ? (
+                    <Loader2 className="animate-spin" size={24} />
+                  ) : (
+                    <ImagePlus size={24} />
+                  )}
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-gray-700">
+                    เพิ่มรูปภาพสิ่งของ
+                  </p>
+                </div>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                  disabled={loading}
+                />
+              </label>
+
+              {/* Preview Images: เปลี่ยนจากแนวนอน (overflow-x) เป็น Grid เพื่อไม่ให้ยาวออกข้างนอก */}
+              {postForm.image_urls.length > 0 && (
+                <div className="grid grid-cols-3 gap-3 pt-2">
+                  {postForm.image_urls.map((url, index) => (
+                    <div
+                      key={index}
+                      className="relative group/img aspect-square animate-in fade-in zoom-in-95"
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPostForm((prev) => ({
+                            ...prev,
+                            image_urls: prev.image_urls.filter(
+                              (_, i) => i !== index,
+                            ),
+                          }))
+                        }
+                        className="absolute -right-1 -top-1 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow-lg hover:bg-red-600 transition-all"
+                      >
+                        <X size={12} strokeWidth={3} />
+                      </button>
+                      <img
+                        src={url}
+                        alt="preview"
+                        className="h-full w-full object-cover rounded-xl ring-1 ring-gray-100 shadow-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ส่วนปุ่มกดตรึงอยู่กับที่ด้านล่าง */}
+        <div className="p-8 bg-gray-50/50 border-t border-gray-100 shrink-0">
+          <DialogFooter className="gap-3 sm:gap-0">
+            <Button
+              variant="ghost"
+              onClick={() => onOpenChange(false)}
+              className="flex-1 rounded-xl font-bold text-gray-400"
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex-[2] rounded-xl bg-[#FF5800] font-black text-white hover:bg-[#E64F00] shadow-lg shadow-orange-100 active:scale-95 transition-all"
+            >
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                "ลงประกาศเลย"
+              )}
+            </Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
