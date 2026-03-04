@@ -50,7 +50,7 @@ const Navbar = () => {
             <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-[#FF8A00]"></span>
           </button>
           <button 
-            onClick={() => navigate("chat")}
+            onClick={() => navigate("chat-list")}
             className="p-2 text-white hover:bg-white/20 rounded-xl transition-all" 
             title="แชท"
           >
