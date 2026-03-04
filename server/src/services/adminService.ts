@@ -1,4 +1,5 @@
 import sql from "../../db";
+import { deletePost } from "../controllers/PostController";
 
 export class AdminService {
   // --- User Management ---
@@ -17,7 +18,7 @@ export class AdminService {
       WHERE student_id = ${student_id}
       LIMIT 1
     `;
-    
+
     if (user.length === 0) return null;
 
     const posts = await sql`
@@ -30,7 +31,10 @@ export class AdminService {
     return { ...user[0], posts };
   }
 
-  async updateUserStatus(student_id: number, status: 'ACTIVE' | 'BANNED' | 'INACTIVE') {
+  async updateUserStatus(
+    student_id: number,
+    status: "ACTIVE" | "BANNED" | "INACTIVE",
+  ) {
     const updated = await sql`
       UPDATE "User"
       SET status = ${status}::"UserStatus", updated_at = NOW()
@@ -58,7 +62,7 @@ export class AdminService {
       await tx`DELETE FROM "post_category" WHERE post_id = ${post_id}`;
       await tx`DELETE FROM "favorite" WHERE post_id = ${post_id}`;
       await tx`DELETE FROM "report" WHERE post_id = ${post_id}`;
-      
+
       const deleted = await tx`
         DELETE FROM "Post"
         WHERE post_id = ${post_id}
@@ -71,7 +75,7 @@ export class AdminService {
   // --- Report Management ---
   async getAllReports() {
     return await sql`
-      SELECT r.report_id, r.text, r.created_at, 
+      SELECT r.report_id, r.reason, r.description, r.status, r.created_at,
              p.post_id, p.title as post_title,
              u.first_name as reporter_name, u.last_name as reporter_surname
       FROM "report" r

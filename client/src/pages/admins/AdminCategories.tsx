@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import useTestStore from "@/store/tokStore";
 import { getCategories, createCategory, deleteCategory, updateCategory } from "@/api/category";
+import Title from "../../titles/Title";
+import Swal from "sweetalert2";
+import { Plus, Edit3, Trash2, Check, X, FolderPlus, Tag, Loader2 } from "lucide-react";
 
 interface Category {
   category_id: number;
@@ -23,7 +26,7 @@ const AdminCategories = () => {
     try {
       setIsLoading(true);
       const res = await getCategories(token);
-      setCategories(res.data.data);
+      setCategories(res.data.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -40,24 +43,44 @@ const AdminCategories = () => {
       await createCategory(token, { category_name: trimmed });
       setNewCategory("");
       fetchCategories();
-      alert("เพิ่มหมวดหมู่สำเร็จ");
+      Swal.fire({
+        icon: 'success',
+        title: 'เพิ่มหมวดหมู่สำเร็จ',
+        timer: 1500,
+        showConfirmButton: false,
+        borderRadius: "15px"
+      });
     } catch (err: any) {
-      console.error(err);
-      alert(err.response?.data?.error || "เกิดข้อผิดพลาด");
+      Swal.fire("เกิดข้อผิดพลาด", err.response?.data?.error || "ไม่สามารถเพิ่มหมวดหมู่ได้", "error");
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบหมวดหมู่นี้?")) return;
+    const result = await Swal.fire({
+      title: "ยืนยันการลบ?",
+      text: "การลบหมวดหมู่ส่งผลต่อโพสต์ที่ใช้งานหมวดหมู่นี้อยู่",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      confirmButtonText: "ลบเลย",
+      cancelButtonText: "ยกเลิก",
+      borderRadius: "15px",
+    });
 
-    try {
-      if (!token) return;
-      await deleteCategory(token, id);
-      fetchCategories();
-      alert("ลบหมวดหมู่สำเร็จ");
-    } catch (err: any) {
-      console.error(err);
-      alert(err.response?.data?.error || "เกิดข้อผิดพลาด");
+    if (result.isConfirmed) {
+      try {
+        if (!token) return;
+        await deleteCategory(token, id);
+        fetchCategories();
+        Swal.fire({
+          icon: 'success',
+          title: 'ลบเรียบร้อย',
+          timer: 1000,
+          showConfirmButton: false
+        });
+      } catch (err: any) {
+        Swal.fire("เกิดข้อผิดพลาด", err.response?.data?.error || "ไม่สามารถลบได้", "error");
+      }
     }
   };
 
@@ -70,10 +93,14 @@ const AdminCategories = () => {
       await updateCategory(token, id, { category_name: trimmed });
       setEditingId(null);
       fetchCategories();
-      alert("แก้ไขหมวดหมู่สำเร็จ");
+      Swal.fire({
+        icon: 'success',
+        title: 'แก้ไขสำเร็จ',
+        timer: 1000,
+        showConfirmButton: false
+      });
     } catch (err: any) {
-      console.error(err);
-      alert(err.response?.data?.error || "เกิดข้อผิดพลาด");
+      Swal.fire("เกิดข้อผิดพลาด", err.response?.data?.error || "ไม่สามารถแก้ไขได้", "error");
     }
   };
 
@@ -83,88 +110,133 @@ const AdminCategories = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="flex">
-        <main className="flex-1 p-8">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">จัดการหมวดหมู่</h1>
+    <div className="space-y-6 font-['Inter',_sans-serif]">
+      {/* Page Header */}
+      <div>
+        <Title />
+        <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+          Category <span className="text-[#FF5800]">Management</span>
+        </h1>
+        <p className="text-gray-500 text-sm mt-1 font-medium">จัดการหมวดหมู่เนื้อหาภายในระบบ</p>
+      </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            {/* Add Category */}
-            <div className="flex items-center gap-3 mb-6">
-              <span className="text-gray-700 font-medium whitespace-nowrap">เพิ่มหมวดหมู่</span>
+      {/* Main Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left: Add Category Form */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 sticky top-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 bg-orange-50 text-[#FF5800] rounded-lg">
+                <FolderPlus size={20} />
+              </div>
+              <h2 className="text-lg font-bold text-gray-800">เพิ่มหมวดหมู่ใหม่</h2>
+            </div>
+            <div className="space-y-4">
               <input
                 type="text"
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                placeholder="ชื่อหมวดหมู่"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#FF5800]/20 focus:border-[#FF5800] transition-all"
+                placeholder="ระบุชื่อหมวดหมู่..."
               />
               <button
                 onClick={handleAdd}
-                className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium"
+                disabled={!newCategory.trim()}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-[#FF5800] text-white rounded-xl font-bold hover:bg-[#E64F00] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-orange-200"
               >
-                บันทึก
+                <Plus size={18} />
+                บันทึกข้อมูล
               </button>
             </div>
+          </div>
+        </div>
 
-            {/* Category List */}
+        {/* Right: Category List */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Tag size={18} className="text-gray-400" />
+                <h3 className="font-bold text-gray-700">หมวดหมู่ทั้งหมด</h3>
+              </div>
+              <span className="text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
+                {categories.length} รายการ
+              </span>
+            </div>
+
             {isLoading ? (
-              <div className="text-center py-12 text-gray-500">กำลังโหลด...</div>
+              <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-3">
+                <Loader2 className="animate-spin" size={32} />
+                <p className="font-medium">กำลังโหลดข้อมูล...</p>
+              </div>
             ) : (
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-gray-50">
                 {categories.map((cat) => (
-                  <div key={cat.category_id} className="flex items-center justify-between py-4 px-2">
+                  <div key={cat.category_id} className="group flex items-center justify-between py-4 px-6 hover:bg-orange-50/30 transition-all">
                     {editingId === cat.category_id ? (
-                      <div className="flex-1 flex gap-2 items-center">
+                      <div className="flex-1 flex gap-2 items-center animate-in fade-in slide-in-from-left-2">
                         <input
                           type="text"
+                          autoFocus
                           value={editingName}
                           onChange={(e) => setEditingName(e.target.value)}
-                          className="flex-1 px-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          onKeyDown={(e) => e.key === "Enter" && handleUpdate(cat.category_id)}
+                          className="flex-1 px-3 py-2 bg-white border border-[#FF5800] rounded-lg outline-none shadow-sm text-sm"
                         />
                         <button
                           onClick={() => handleUpdate(cat.category_id)}
-                          className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                          className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
                         >
-                          บันทึก
+                          <Check size={16} />
                         </button>
                         <button
                           onClick={() => setEditingId(null)}
-                          className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600"
+                          className="p-2 bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition-colors"
                         >
-                          ยกเลิก
+                          <X size={16} />
                         </button>
                       </div>
                     ) : (
                       <>
-                        <span className="text-gray-700">{cat.category_name}</span>
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-orange-300 group-hover:bg-[#FF5800] transition-colors" />
+                          <span className="text-gray-700 font-bold group-hover:text-gray-900 transition-colors">
+                            {cat.category_name}
+                          </span>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => startEditing(cat)}
-                            className="px-4 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                           >
-                            แก้ไข
+                            <Edit3 size={16} />
                           </button>
                           <button
                             onClick={() => handleDelete(cat.category_id)}
-                            className="px-4 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                           >
-                            ลบ
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </>
                     )}
                   </div>
                 ))}
+                
+                {categories.length === 0 && (
+                  <div className="text-center py-20">
+                    <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Tag size={24} className="text-gray-300" />
+                    </div>
+                    <p className="text-gray-400 font-medium">ยังไม่มีข้อมูลหมวดหมู่ในระบบ</p>
+                  </div>
+                )}
               </div>
             )}
-
-            {!isLoading && categories.length === 0 && (
-              <div className="text-center py-12 text-gray-500">ยังไม่มีหมวดหมู่</div>
-            )}
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

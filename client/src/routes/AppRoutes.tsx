@@ -15,12 +15,14 @@ import ProtectRouteUser from "./ProtectRouteUser";
 import ProtectRouteAdmin from "./ProtectRouteAdmin";
 import Layout from "@/layouts/Layout";
 import ChatListPage from "@/pages/users/ChatList";
+import LandingPage from "@/pages/landing/LandingPage";
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Layout/>,
     children: [
+      { index: true, element: <LandingPage /> },
       { path: "login", element: <Login /> },
       { path: "register", element: <Register /> },
     ],

@@ -1,135 +1,244 @@
+import { getUserReport } from "@/api/repost";
 import Title from "../../titles/Title";
-import { useState } from "react";
-// import { FileText, Flag, FolderOpen, Users, LogOut, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import useTestStore from "@/store/tokStore";
+import axios from "axios";
+import Swal from "sweetalert2";
+import {
+  AlertCircle,
+  CheckCircle2,
+  MoreHorizontal,
+  Trash2,
+  Filter,
+} from "lucide-react";
 
 interface Report {
-  id: number;
-  reporter: string;
-  postTitle: string;
+  report_id: number;
   reason: string;
-  date: string;
-  status: "pending" | "resolved" | "ignored";
+  description: string;
+  status: "PENDING" | "RESOLVED" | "IGNORED";
+  created_at: string;
+  post_id: number;
+  post_title: string;
+  reporter_name: string;
+  reporter_surname: string;
 }
 
-const mockReports: Report[] = [
-  { id: 1, reporter: "user123", postTitle: "โพสต์ขายสินค้าผิดกฎหมาย", reason: "สแปม", date: "15/01/2026", status: "pending" },
-  { id: 2, reporter: "johndoe", postTitle: "ข้อความหยาบคาย", reason: "เนื้อหาไม่เหมาะสม", date: "14/01/2026", status: "pending" },
-  { id: 3, reporter: "jane_th", postTitle: "รูปภาพละเมิดลิขสิทธิ์", reason: "ละเมิดลิขสิทธิ์", date: "13/01/2026", status: "resolved" },
-  { id: 4, reporter: "mike99", postTitle: "โฆษณาหลอกลวง", reason: "หลอกลวง", date: "12/01/2026", status: "ignored" },
-];
-
 const AdminReport = () => {
+  const token = useTestStore((state) => state.token);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string>("ALL");
 
-  const [reports, setReports] = useState<Report[]>(mockReports);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-
-  
-
-  const handleAction = (id: number, action: "resolve" | "ignore" | "delete") => {
-    setReports(reports.map(report => {
-      if (report.id === id) {
-        if (action === "delete") {
-          return { ...report, status: "resolved" as const };
-        }
-        return { ...report, status: action === "resolve" ? "resolved" as const : "ignored" as const };
-      }
-      return report;
-    }));
-  };
-
-  const filteredReports = filterStatus === "all" 
-    ? reports 
-    : reports.filter(r => r.status === filterStatus);
-
-
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">รอตรวจสอบ</span>;
-      case "resolved":
-        return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">จัดการแล้ว</span>;
-      case "ignored":
-        return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">เพิกเฉย</span>;
-      default:
-        return null;
+  const fetchReport = async () => {
+    try {
+      const res = await getUserReport(token);
+      setReports(res?.data?.data || []);
+    } catch (err) {
+      console.error("Error fetching reports:", err);
     }
   };
 
+  useEffect(() => {
+    fetchReport();
+  }, []);
+
+  const handleDeletePost = async (reportId: number) => {
+    const result = await Swal.fire({
+      title: "ยืนยันการลบโพสต์?",
+      text: "การดำเนินการนี้จะลบโพสต์ออกจากระบบและเปลี่ยนสถานะรายงานเป็น 'จัดการแล้ว'",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#FF5800",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "ยืนยันการลบ",
+      cancelButtonText: "ยกเลิก",
+      borderRadius: "15px",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await axios.delete(`http://localhost:8000/admin/reports/${reportId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setReports((prev) =>
+          prev.map((r) =>
+            r.report_id === reportId ? { ...r, status: "RESOLVED" } : r
+          )
+        );
+        Swal.fire({
+          title: "สำเร็จ!",
+          text: "จัดการข้อมูลเรียบร้อยแล้ว",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } catch (err) {
+        Swal.fire({
+          title: "เกิดข้อผิดพลาด!",
+          text: "ไม่สามารถลบโพสต์ได้",
+          icon: "error",
+        });
+      }
+    }
+  };
+
+  const filteredReports =
+    filterStatus === "ALL"
+      ? reports
+      : reports.filter((r) => r.status === filterStatus);
+
   return (
-    <div >
-      <Title/>
-        {/* Main Content */}
+    <div className="space-y-6 font-['Inter',_sans-serif]">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <Title />
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+            Report <span className="text-[#FF5800]">Management</span>
+          </h1>
+          <p className="text-gray-500 text-sm mt-1 font-medium">
+            จัดการและตรวจสอบรายงานการกระทำผิดภายในระบบ
+          </p>
+        </div>
 
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-gray-800">รายงาน</h1>
-            
-            {/* Filter */}
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="all">ทั้งหมด</option>
-              <option value="pending">รอตรวจสอบ</option>
-              <option value="resolved">จัดการแล้ว</option>
-              <option value="ignored">เพิกเฉย</option>
-            </select>
+        {/* Filter Box */}
+        <div className="flex items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+          <div className="pl-3 text-gray-400">
+            <Filter size={18} />
           </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="pr-8 py-2 bg-transparent text-sm font-bold text-gray-700 outline-none cursor-pointer"
+          >
+            <option value="ALL">รายงานทั้งหมด</option>
+            <option value="PENDING">🟡 รอดำเนินการ</option>
+            <option value="RESOLVED">🟢 จัดการแล้ว</option>
+            <option value="IGNORED">⚪ เพิกเฉย</option>
+          </select>
+        </div>
+      </div>
 
-          {/* Reports Table */}
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">ผู้รายงาน</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">โพสต์ที่ถูกรายงาน</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">เหตุผล</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">วันที่</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">สถานะ</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">การจัดการ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredReports.map((report) => (
-                  <tr key={report.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-800">{report.reporter}</td>
-                    <td className="px-6 py-4 text-sm text-gray-800 max-w-xs truncate">{report.postTitle}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{report.reason}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{report.date}</td>
-                    <td className="px-6 py-4">{getStatusBadge(report.status)}</td>
-                    <td className="px-6 py-4">
-                      {report.status === "pending" ? (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleAction(report.id, "delete")}
-                            className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                          >
-                            ลบโพสต์
-                          </button>
-                          <button
-                            onClick={() => handleAction(report.id, "ignore")}
-                            className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-                          >
-                            เพิกเฉย
-                          </button>
+      {/* Table Section */}
+      <div className="bg-white rounded-[24px] shadow-sm border border-gray-200 overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-gray-50/50 border-b border-gray-100">
+              <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-[0.15em]">
+                Reporter
+              </th>
+              <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-[0.15em]">
+                Post Details
+              </th>
+              <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-[0.15em]">
+                Violation Reason
+              </th>
+              <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] text-center">
+                Status
+              </th>
+              <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] text-right">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {filteredReports.length > 0 ? (
+              filteredReports.map((report) => (
+                <tr
+                  key={report.report_id}
+                  className="hover:bg-orange-50/20 transition-all duration-200 group"
+                >
+                  <td className="px-8 py-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-xs border border-gray-200">
+                        {report.reporter_name[0]}
+                      </div>
+                      <div>
+                        <div className="font-bold text-gray-900">
+                          {report.reporter_name}
                         </div>
-                      ) : (
-                        <span className="text-gray-400 text-sm">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {filteredReports.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
-                ไม่มีรายงานที่ตรงกับตัวกรอง
-              </div>
+                        <div className="text-[11px] text-gray-400 font-medium">
+                          {report.reporter_surname}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-8 py-6">
+                    <div className="text-sm font-bold text-gray-800 hover:text-[#FF5800] cursor-pointer transition-colors line-clamp-1">
+                      {report.post_title}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">
+                        ID: {report.post_id}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-8 py-6">
+                    <div className="inline-flex items-center gap-1.5 text-red-600 bg-red-50 px-2.5 py-1 rounded-lg">
+                      <AlertCircle size={14} strokeWidth={3} />
+                      <span className="text-xs font-black">
+                        {report.reason}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2 line-clamp-2 leading-relaxed italic">
+                      "{report.description}"
+                    </p>
+                  </td>
+                  <td className="px-8 py-6 text-center">
+                    {report.status === "PENDING" && (
+                      <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm">
+                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                        Pending
+                      </span>
+                    )}
+                    {report.status === "RESOLVED" && (
+                      <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+                        <CheckCircle2 size={12} />
+                        Resolved
+                      </span>
+                    )}
+                    {report.status === "IGNORED" && (
+                      <span className="inline-flex items-center bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider">
+                        Ignored
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-8 py-6 text-right">
+                    {report.status === "PENDING" ? (
+                      <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <button
+                          onClick={() => handleDeletePost(report.report_id)}
+                          className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                        <button className="p-2.5 bg-gray-50 text-gray-400 rounded-xl hover:bg-gray-200 hover:text-gray-700 transition-all shadow-sm">
+                          <MoreHorizontal size={18} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-gray-300 text-[10px] font-black uppercase tracking-widest italic">
+                        Processed
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={5} className="px-8 py-20 text-center">
+                  <div className="flex flex-col items-center gap-2 opacity-20">
+                    <CheckCircle2 size={48} />
+                    <p className="font-bold text-lg text-gray-500">
+                      ไม่มีรายการแจ้งรายงานในขณะนี้
+                    </p>
+                  </div>
+                </td>
+              </tr>
             )}
-          </div>
-
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

@@ -1,10 +1,10 @@
-import Title from "../../titles/Title";
-import { useState } from "react";
-// import Login from "./Login";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import Title from "../../titles/Title";
+import { User, Phone, Calendar, Mail, Lock, UserPlus } from "lucide-react";
+import Swal from 'sweetalert2';
 
 const Register = () => {
-  
   interface registerForm {
     fname: string;
     lname: string;
@@ -12,11 +12,10 @@ const Register = () => {
     birthDate: string;
     email: string;
     password: string;
-    confirmPassword:string;
-
+    confirmPassword: string;
   }
 
-  const [ information, setInformation] = useState<registerForm>({
+  const [information, setInformation] = useState<registerForm>({
     fname: "",
     lname: "",
     phoneNumber: "",
@@ -30,123 +29,211 @@ const Register = () => {
     setInformation({
       ...information,
       [e.target.name]: e.target.value
-    })
+    });
+  };
+
+const handleOnSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  
+  // 1. เช็ครหัสผ่านไม่ตรงกัน
+  if (information.password !== information.confirmPassword) {
+    Swal.fire({
+      icon: "error",
+      title: "รหัสผ่านไม่ตรงกัน",
+      text: "กรุณาตรวจสอบและกรอกรหัสผ่านใหม่อีกครั้ง",
+      confirmButtonColor: "#FF5800", // สีส้มตาม Theme เรา
+      confirmButtonText: "ตกลง",
+    });
+    return;
   }
 
-  const handleOnSubmit = async(e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    try {
-      if (information.password !== information.confirmPassword) {
-        return 
+  try {
+    // แสดง Loading ระหว่างรอ API (Optional)
+    Swal.fire({
+      title: 'กำลังลงทะเบียน...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
       }
-      // const data = await axios.post("/", information);
-      console.log(information);
-      
+    });
 
-    }catch(err){
-      console.log(err)
-    }
+    // สมมติว่าเรียก API ตรงนี้
+    // const res = await axios.post("/api/register", information);
+    
+    // 2. สมัครสำเร็จ
+    Swal.fire({
+      icon: "success",
+      title: "ลงทะเบียนสำเร็จ!",
+      text: "ยินดีต้อนรับเข้าสู่ KMITL CONNECT",
+      confirmButtonColor: "#FF5800",
+      confirmButtonText: "ไปหน้าเข้าสู่ระบบ",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        navigate("/login");
+      }
+    });
+
+  } catch (err) {
+    // 3. กรณี Error จาก Server (เช่น อีเมลซ้ำ)
+    Swal.fire({
+      icon: "error",
+      title: "เกิดข้อผิดพลาด",
+      text: "ไม่สามารถลงทะเบียนได้ในขณะนี้",
+      confirmButtonColor: "#FF5800",
+    });
   }
+};
+
+  // Helper สำหรับสไตล์ของ Input
+  const inputStyle = "w-full bg-gray-50 border border-gray-100 rounded-2xl py-3 pl-11 pr-4 text-sm outline-none ring-2 ring-transparent focus:ring-[#FF5800]/10 focus:border-[#FF5800] focus:bg-white transition-all placeholder:text-gray-300";
+  const labelStyle = "text-xs font-black text-gray-700 uppercase tracking-wider ml-1 mb-1 block";
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center bg-background px-4">
-      <Title/>
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-lg">
-        <h1 className="text-2xl font-semibold text-center text-foreground mb-8">
-          ลงทะเบียน
-        </h1>
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col items-center justify-center px-4 py-12 font-['Inter',_sans-serif]">
+      <Title />
+      
+      <div className="bg-white mt-8 p-8 sm:p-10 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-gray-100 w-full max-w-2xl">
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">
+            สร้างบัญชีใหม่
+          </h1>
+          <p className="text-gray-400 text-sm font-medium">
+            เข้าร่วมคอมมูนิตี้ KMITL CONNECT ได้ง่ายๆ ในไม่กี่ขั้นตอน
+          </p>
+        </div>
 
-        <form className="space-y-4" onSubmit={handleOnSubmit}>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col space-y-2">
-              ชื่อ
+        <form className="space-y-5" onSubmit={handleOnSubmit}>
+          {/* ชื่อ - นามสกุล */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="relative group">
+              <label className={labelStyle}>ชื่อ</label>
+              <div className="absolute top-[34px] left-4 text-gray-400 group-focus-within:text-[#FF5800] transition-colors">
+                <User size={18} />
+              </div>
               <input
-                className="border rounded-sm px-2"
-                placeholder="ชื่อ"
+                className={inputStyle}
+                placeholder="ชื่อจริง"
                 type="text"
                 name="fname"
+                required
                 onChange={handleOnChange}
               />
             </div>
 
-            <div className="flex flex-col space-y-2">
-              นามสกุล
+            <div className="relative group">
+              <label className={labelStyle}>นามสกุล</label>
+              <div className="absolute top-[34px] left-4 text-gray-400 group-focus-within:text-[#FF5800] transition-colors">
+                <User size={18} />
+              </div>
               <input
-                className="border rounded-sm w-full  px-2"
+                className={inputStyle}
                 placeholder="นามสกุล"
                 type="text"
                 name="lname"
+                required
                 onChange={handleOnChange}
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col space-y-2">
-              เบอร์โทรศัพท์
+          {/* เบอร์โทร - วันเกิด */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="relative group">
+              <label className={labelStyle}>เบอร์โทรศัพท์</label>
+              <div className="absolute top-[34px] left-4 text-gray-400 group-focus-within:text-[#FF5800] transition-colors">
+                <Phone size={18} />
+              </div>
               <input
-                className="border rounded-sm w-full px-2"
-                placeholder="เบอร์โทรศัพท์"
+                className={inputStyle}
+                placeholder="08X-XXX-XXXX"
                 type="text"
                 name="phoneNumber"
+                required
                 onChange={handleOnChange}
               />
             </div>
 
-            <div className="flex flex-col space-y-2">
-              วันเกิด
-              <input className="border rounded-sm w-full px-2" 
-              type="date" 
-              name="birthDate"
-              onChange={handleOnChange}/>
+            <div className="relative group">
+              <label className={labelStyle}>วันเกิด</label>
+              <div className="absolute top-[34px] left-4 text-gray-400 group-focus-within:text-[#FF5800] transition-colors">
+                <Calendar size={18} />
+              </div>
+              <input 
+                className={inputStyle}
+                type="date" 
+                name="birthDate"
+                required
+                onChange={handleOnChange}
+              />
             </div>
           </div>
 
-          <div className="space-y-2">
-            อีเมล
+          {/* อีเมล */}
+          <div className="relative group">
+            <label className={labelStyle}>อีเมลสถาบัน</label>
+            <div className="absolute top-[34px] left-4 text-gray-400 group-focus-within:text-[#FF5800] transition-colors">
+              <Mail size={18} />
+            </div>
             <input
-              className="border rounded-sm w-full  px-2"
-              placeholder="อีเมล"
+              className={inputStyle}
+              placeholder="name@kmitl.ac.th"
               type="email"
               name="email"
+              required
               onChange={handleOnChange}
             />
           </div>
 
-          <div className="space-y-2">
-            รหัสผ่าน
-            <input
-              className="border rounded-sm w-full  px-2"
-              placeholder="รหัสผ่าน"
-              type="text"
-              name="password"
-              onChange={handleOnChange}
-            />
+          {/* รหัสผ่าน */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="relative group">
+              <label className={labelStyle}>รหัสผ่าน</label>
+              <div className="absolute top-[34px] left-4 text-gray-400 group-focus-within:text-[#FF5800] transition-colors">
+                <Lock size={18} />
+              </div>
+              <input
+                className={inputStyle}
+                placeholder="••••••••"
+                type="password"
+                name="password"
+                required
+                onChange={handleOnChange}
+              />
+            </div>
+
+            <div className="relative group">
+              <label className={labelStyle}>ยืนยันรหัสผ่าน</label>
+              <div className="absolute top-[34px] left-4 text-gray-400 group-focus-within:text-[#FF5800] transition-colors">
+                <Lock size={18} />
+              </div>
+              <input
+                className={inputStyle}
+                placeholder="••••••••"
+                type="password"
+                name="confirmPassword"
+                required
+                onChange={handleOnChange}
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            ยืนยันรหัสผ่าน
-            <input
-              className="border rounded-sm w-full  px-2"
-              placeholder="ยืนยันรหัสผ่าน"
-              type="text"
-              name="confirmPassword"
-              onChange={handleOnChange}
-            />
-          </div>
-
-          <button className="text-white bg-red-500 rounded-md w-full h-full mt-4 py-1">
+          <button className="flex items-center justify-center gap-2 text-white bg-gradient-to-r from-[#FFB800] to-[#FF5800] font-black rounded-2xl w-full py-4 shadow-[0_10px_20px_rgba(255,88,0,0.2)] hover:shadow-[0_15px_25px_rgba(255,88,0,0.3)] hover:scale-[1.01] active:scale-[0.99] transition-all mt-6">
+            <UserPlus size={20} strokeWidth={3} />
             สมัครสมาชิก
           </button>
 
-          <p className="text-center text-muted-foreground mt-4">
-            เป็นสมาชิกอยู่แล้ว,{" "}
-            <Link to={"/login"} className="text-red-500 hover:underline font-medium">
+          <p className="text-center text-gray-500 mt-6 font-medium text-sm">
+            เป็นสมาชิกอยู่แล้วใช่ไหม?{" "}
+            <Link to={"/login"} className="text-[#FF5800] hover:text-[#E64A00] font-black underline underline-offset-4 transition-colors">
               เข้าสู่ระบบ
             </Link>
           </p>
         </form>
       </div>
+
+      <p className="mt-8 text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em]">
+        KMITL CONNECT • Community for Students
+      </p>
     </div>
   );
 };

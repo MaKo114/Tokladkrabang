@@ -1,15 +1,25 @@
-import { Link, Outlet } from "react-router-dom";
+import Navbar1 from "@/components/navbars/NavBar1";
+import { Outlet } from "react-router-dom";
+
 
 const Layout = () => {
   return (
-    <div>
-      <div className="space-x-2 px-2">
-        <Link to="/login">login</Link>
-        <Link to="/register">register</Link>
-      </div>
-      <main>
+    <div className="min-h-screen bg-[#F8F9FA] font-['Inter',_sans-serif]">
+      {/* ใช้ Navbar Component ที่เราแยกมา */}
+      <Navbar1 />
+
+      {/* เนื้อหาหลักที่จะเปลี่ยนไปตาม Route */}
+      <main className="relative">
         <Outlet />
       </main>
+
+      {/* Footer แบบเบาๆ */}
+      <footer className="py-10 text-center">
+        <div className="mb-2 h-[1px] w-20 bg-gray-200 mx-auto" />
+        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+          © 2026 KMITL CONNECT • Engineering Your Connections
+        </p>
+      </footer>
     </div>
   );
 };
