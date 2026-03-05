@@ -3,7 +3,7 @@ import useTestStore from "@/store/tokStore";
 import { getCategories, createCategory, deleteCategory, updateCategory } from "@/api/category";
 import Title from "../../titles/Title";
 import Swal from "sweetalert2";
-import { Plus, Edit3, Trash2, Check, X, FolderPlus, Tag, Loader2 } from "lucide-react";
+import { Plus, Edit3, Trash2, Check, X, FolderPlus, Tag, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Category {
   category_id: number;
@@ -109,6 +109,19 @@ const AdminCategories = () => {
     setEditingName(category.category_name);
   };
 
+  { /* Pagination Calculation */ }
+  const itemsPerPage = 5; //เอาไว้เปลี่ยนการจำกัดของ row
+  const [currentPage, setCurrentPage] = useState(1);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentCategories = categories.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(categories.length / itemsPerPage);
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  },[categories.length, totalPages]);
+  
   return (
     <div className="space-y-6 font-['Inter',_sans-serif]">
       {/* Page Header */}
@@ -173,7 +186,7 @@ const AdminCategories = () => {
               </div>
             ) : (
               <div className="divide-y divide-gray-50">
-                {categories.map((cat) => (
+                {currentCategories.map((cat) => (
                   <div key={cat.category_id} className="group flex items-center justify-between py-4 px-6 hover:bg-orange-50/30 transition-all">
                     {editingId === cat.category_id ? (
                       <div className="flex-1 flex gap-2 items-center animate-in fade-in slide-in-from-left-2">
@@ -237,6 +250,50 @@ const AdminCategories = () => {
             )}
           </div>
         </div>
+
+        { /* Navigation Footer */ }
+        {categories.length > itemsPerPage && (
+          <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+            <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                Page {currentPage} of {totalPages}
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-[#FF5800] hover:border-[#FF5800] disabled:opacity-30 transition-all"
+              >
+                <ChevronLeft size={16}/>
+              </button>
+
+              { /* ปุ่มแสดงหน้า */ }
+              <div className="flex gap-1 px-1">
+                {Array.from({ length: totalPages }, (_,i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={` w-7 h-7 rounded-lg text-xs font-black transition-all ${
+                      currentPage === page
+                      ? "bg-[#FF5800] text-white"
+                      :"text-gray-400 hover:bg-white hover:text-gray-600"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-[#FF5800] hover:border-[#FF5800] disabled:opacity-30 transition-all"
+              >
+                <ChevronRight size={16}/>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

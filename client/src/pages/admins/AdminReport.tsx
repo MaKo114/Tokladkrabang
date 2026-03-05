@@ -10,6 +10,8 @@ import {
   MoreHorizontal,
   Trash2,
   Filter,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface Report {
@@ -90,6 +92,19 @@ const AdminReport = () => {
   useEffect(()=>{
 
   }, [reports])
+  
+  {/* Pagination Calculation */}
+  const itemsPerPage = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentReports = filteredReports.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredReports.length]);
+  
+
 
   return (
     <div className="space-y-6 font-['Inter',sans-serif]">
@@ -125,6 +140,47 @@ const AdminReport = () => {
 
       {/* Table Section */}
       <div className="bg-white rounded-[24px] shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-8 py-5 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+          <p className="text-xs font-bold text-gray-500">
+            Showing {filteredReports.length > 0 ? indexOfFirstItem + 1:0} to {Math.min(indexOfLastItem, filteredReports.length)} of {filteredReports.length} Reports
+          </p>
+
+          <div className="flex items-center gap-2">
+            { /* ปุ่มถอยหลัง */}
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all text-gray-500"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            { /* ปุ่มตัวเลขหน้า*/}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 rounded-lg text-xs font-black transition-all ${
+              currentPage === page
+                ? "bg-[#FF5800] text-white shadow-md shadow-[#FF5800]/20"
+                : "text-gray-400 hover:bg-white hover:text-[#FF5800]"
+            }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            { /* ปุ่มไปด้านหน้า */}
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages || totalPages === 0}
+              className="p-2 rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all text-gray-500"
+            >
+              <ChevronRight size={16}/>
+            </button>
+          </div>
+        </div>
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50/50 border-b border-gray-100">
