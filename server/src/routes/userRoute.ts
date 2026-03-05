@@ -34,6 +34,12 @@ import {
   ownerConfirmExchange,
   requesterConfirmExchange,
 } from "../controllers/exchangeController";
+import {
+  createComment,
+  getCommentsByPost,
+  updateComment,
+  deleteComment,
+} from "../controllers/commentController";
 export const useRoutes = new Elysia();
 
 
@@ -116,3 +122,11 @@ useRoutes.get("/exchanges/sent", getMySentRequests, { beforeHandle: authCheck })
 useRoutes.get("/exchanges/received", getMyReceivedRequests, { beforeHandle: authCheck });
 useRoutes.post("/exchanges/:exchange_id/owner-confirm", ownerConfirmExchange, { beforeHandle: authCheck });
 useRoutes.post("/exchanges/:exchange_id/requester-confirm", requesterConfirmExchange, { beforeHandle: authCheck });
+
+// comments ของ post
+useRoutes.get("/posts/:post_id/comments", getCommentsByPost);
+useRoutes.post("/posts/:post_id/comments", createComment, { beforeHandle: authCheck });
+
+// แก้/ลบ comment รายตัว
+useRoutes.put("/comments/:comment_id", updateComment, { beforeHandle: authCheck });
+useRoutes.delete("/comments/:comment_id", deleteComment, { beforeHandle: authCheck });
