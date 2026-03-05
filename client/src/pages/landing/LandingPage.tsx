@@ -72,7 +72,7 @@ const LandingPage = () => {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-2xl font-black text-gray-900 sm:text-3xl tracking-tight">
-              ทำไมต้อง KMITL TRADER?
+              ทำไมต้อง KMITL TokLadKraBang?
             </h2>
             <p className="mt-3 text-sm text-gray-400 font-medium">
               ออกแบบมาเพื่อตอบโจทย์ชีวิตนักศึกษาโดยเฉพาะ

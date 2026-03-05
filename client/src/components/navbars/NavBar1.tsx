@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { LogIn, UserPlus, Home } from "lucide-react";
 import NavLink from "../../layouts/NavLink";
-import logo from '../../assets/logo/logo-removebg-preview 3.png';
+import logo from '../../assets/logo/logo_tokladkrabang.png';
 
 const Navbar1 = () => {
   return (
@@ -13,12 +13,12 @@ const Navbar1 = () => {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-white shadow-lg shadow-orange-200 transition-transform group-hover:scale-105">
             {/* <Home size={22} strokeWidth={2.5} /> */}
             <img
-              src={logo} 
+              src={logo} className="rounded-xl w-full h-full object-contain mx-auto my-auto block"
             />
           </div>
           <div className="hidden sm:block">
             <p className="text-lg font-black leading-none tracking-tighter text-gray-900">
-              KMITL <span className="text-[#FF5800]">TRADER</span>
+              KMITL <span className="text-[#FF5800]">TokLadKraBang</span>
             </p>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Community</p>
           </div>
