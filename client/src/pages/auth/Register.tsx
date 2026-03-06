@@ -50,7 +50,7 @@ const Register = () => {
       Swal.fire({
         icon: "error",
         title: "อีเมลไม่ถูกต้อง",
-        text: `กรุณาใช้อีเมลนักศึกษา 8 หลัก`,
+        text: `กรุณาใช้อีเมลนักศึกษา 8 หลัก (6XXXXXXX@kmitl.ac.th)`,
         confirmButtonColor: "#FF5800",
       });
       return;
