@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react"; // เพิ่ม useEffect
 import { useNavigate } from "react-router-dom";
 import { getUserReport } from "@/api/repost"; // import API มาเพื่อใช้นับจำนวน
+import logo from "@/assets/logo/logo_tokladkrabang.png";
 
 const NavbarAdmin = () => {
   const [activeMenu, setActiveMenu] = useState("โพสต์ทั้งหมด");
@@ -74,12 +75,16 @@ const NavbarAdmin = () => {
       {/* KMITL Logo Section */}
       <div className="p-8 border-b border-gray-100 shrink-0">
         <div className="flex flex-col items-center text-center gap-2">
-          <div className="w-16 h-16 bg-[#FF5800] rounded-2xl flex items-center justify-center shadow-lg shadow-[#FF5800]/20">
-            <Shield className="w-10 h-10 text-white" />
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg shadow-[#FF5800]/20 p-2">
+            <img
+              src={logo}
+              alt="TokLadkrabang logo"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div className="mt-2">
             <h1 className="text-[#FF5800] font-black text-xl tracking-tighter uppercase">
-              KMITL ADMIN
+              TOKLADKRABANG ADMIN
             </h1>
             <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em]">
               Management System
