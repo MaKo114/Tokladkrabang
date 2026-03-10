@@ -36,6 +36,10 @@ interface PostState {
   addPost: (post: Post) => void;
   clearPosts: () => void;
   fetchMyPosts: () => Promise<void>;
+  activeCategoryId: number | null; 
+  setActiveCategoryId: (id: number | null) => void;
+  isEditing: boolean;
+  setIsEditing: (status: boolean) => void;
 }
 
 /* ================= STORE ================= */
@@ -43,7 +47,10 @@ interface PostState {
 const postStore: StateCreator<PostState> = (set) => ({
   posts: [],
   myPosts: [],
-
+  activeCategoryId: null,
+  setActiveCategoryId: (id) => set({ activeCategoryId: id }),
+  isEditing: false, // 🟢 กำหนดค่าเริ่มต้น
+  setIsEditing: (status) => set({ isEditing: status }),
   /* ===== FETCH ALL ===== */
   fetchPosts: async () => {
     try {
@@ -81,7 +88,6 @@ const postStore: StateCreator<PostState> = (set) => ({
 
       // Backend ตัวนี้จะไปหา public_id ใน DB เองแล้วลบรูปใน Cloudinary ให้เสร็จสรรพ
       await deletePostApi(token, post_id);
-
 
       set((state) => ({
         posts: state.posts.filter((p) => p.post_id !== post_id),
