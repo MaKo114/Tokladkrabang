@@ -1,0 +1,4 @@
+# Keep local credentials out of Git in every project directory.
+.env
+.env.*
+!.env.example
